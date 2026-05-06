@@ -169,6 +169,8 @@ a {
 }
 
 .leaflet-map {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: clamp(360px, 46vh, 520px);
   min-height: 360px;
@@ -194,6 +196,7 @@ a {
 .map-panel::after {
   position: absolute;
   inset: 0;
+  z-index: 2;
   background:
     linear-gradient(180deg, rgb(23 32 51 / 0%) 40%, rgb(23 32 51 / 28%) 100%),
     radial-gradient(circle at 78% 18%, rgb(255 255 255 / 28%), transparent 28%);
@@ -204,15 +207,15 @@ a {
 .map-label {
   display: flex;
   position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 2;
+  top: 12px;
+  left: 12px;
+  z-index: 500;
   align-items: center;
   gap: 10px;
   border: 1px solid rgb(23 32 51 / 12%);
   border-radius: 999px;
   background: rgb(255 255 255 / 84%);
-  padding: 8px 12px;
+  padding: 7px 10px;
   box-shadow: 0 12px 34px rgb(23 32 51 / 12%);
 }
 
@@ -220,7 +223,7 @@ a {
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: 2;
+  z-index: 500;
   width: 22px;
   height: 22px;
   border: 2px solid #172033;
@@ -259,25 +262,25 @@ a {
 
 .weather-card {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
-  z-index: 2;
+  right: 12px;
+  bottom: 12px;
+  z-index: 500;
   display: grid;
-  width: min(100% - 36px, 270px);
-  gap: 10px;
-  grid-template-columns: 44px 1fr;
+  width: min(100% - 24px, 220px);
+  gap: 8px;
+  grid-template-columns: 34px 1fr;
   border: 1px solid rgb(255 255 255 / 64%);
   border-radius: 8px;
   background: rgb(255 255 255 / 88%);
-  padding: 12px;
+  padding: 10px;
   box-shadow: 0 18px 54px rgb(23 32 51 / 18%);
   backdrop-filter: blur(14px);
 }
 
 .weather-icon {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border-radius: 8px;
   background: #fff3c4;
@@ -286,11 +289,11 @@ a {
 .weather-icon span {
   position: relative;
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   background: #d8a547;
-  box-shadow: 0 0 0 6px rgb(216 165 71 / 20%);
+  box-shadow: 0 0 0 5px rgb(216 165 71 / 20%);
 }
 
 .weather-icon[data-icon="cloud"] {
@@ -299,8 +302,8 @@ a {
 
 .weather-icon[data-icon="cloud"] span,
 .weather-icon[data-icon="cloud-sun"] span {
-  width: 28px;
-  height: 14px;
+  width: 22px;
+  height: 11px;
   border-radius: 999px;
   background: #7b8798;
   box-shadow: none;
@@ -309,10 +312,10 @@ a {
 .weather-icon[data-icon="cloud"] span::before,
 .weather-icon[data-icon="cloud-sun"] span::before {
   position: absolute;
-  top: -10px;
-  left: 7px;
-  width: 15px;
-  height: 15px;
+  top: -8px;
+  left: 6px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: inherit;
   content: "";
@@ -324,11 +327,11 @@ a {
 
 .weather-icon[data-icon="cloud-sun"] span::after {
   position: absolute;
-  top: -13px;
-  left: -8px;
+  top: -10px;
+  left: -6px;
   z-index: -1;
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: #d8a547;
   content: "";
@@ -341,8 +344,8 @@ a {
 
 .weather-icon[data-icon="rain"] span,
 .weather-icon[data-icon="snow"] span {
-  width: 28px;
-  height: 14px;
+  width: 22px;
+  height: 11px;
   border-radius: 999px;
   background: #3f6fb5;
   box-shadow: none;
@@ -354,7 +357,7 @@ a {
 
 .weather-copy span {
   color: #2f7d68;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -362,43 +365,44 @@ a {
 
 .weather-copy strong {
   display: block;
-  margin-top: 5px;
+  margin-top: 3px;
   color: #172033;
-  font-size: 1.15rem;
+  font-size: 1rem;
   line-height: 1.05;
 }
 
 .weather-copy p {
-  margin: 5px 0 0;
+  margin: 3px 0 0;
   color: #657184;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   line-height: 1.45;
 }
 
 .weather-stats {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, 1fr);
 }
 
 .weather-stats span {
   display: flex;
-  min-height: 46px;
-  flex-direction: column;
-  justify-content: center;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
   border: 1px solid rgb(23 32 51 / 10%);
   border-radius: 8px;
   background: rgb(246 247 242 / 70%);
   color: #657184;
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   font-weight: 800;
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 .weather-stats strong {
   color: #172033;
-  font-size: 1.08rem;
+  font-size: 0.9rem;
   line-height: 1.1;
 }
 
@@ -406,7 +410,7 @@ a {
   grid-column: 1 / -1;
   margin: -2px 0 0;
   color: #657184;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 800;
 }
 
@@ -414,7 +418,7 @@ a {
   grid-column: 1 / -1;
   margin: -4px 0 0;
   color: #b45309;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
 }
 

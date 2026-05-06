@@ -220,7 +220,7 @@ function App() {
             </div>
             <div className="weather-stats">
               <span>
-                <strong>{weather && !weatherLoading ? `${weather.temperature}°` : '--°'}</strong>
+                <strong>{weather && !weatherLoading ? `${weather.temperature} deg` : '-- deg'}</strong>
                 Temp
               </span>
               <span>
