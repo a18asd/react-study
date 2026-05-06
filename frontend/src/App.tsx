@@ -144,7 +144,7 @@ function App() {
                 습도
               </span>
             </div>
-            {weather?.notice && <p className="weather-notice">API key fallback</p>}
+            {weather?.notice && <p className="weather-notice">{weather.notice}</p>}
           </div>
         </div>
       </section>

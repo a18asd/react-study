@@ -2,9 +2,11 @@ package com.example.reactstudy.api;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -15,6 +17,8 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class WeatherController {
 
+    private static final Logger log = LoggerFactory.getLogger(WeatherController.class);
     private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HHmm");
@@ -49,9 +54,27 @@ public class WeatherController {
         }
 
         ForecastBase forecastBase = latestUltraShortBaseTime();
-        URI uri = URI.create(
+        URI uri = weatherUri(forecastBase);
+
+        HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            String reason = "KMA request failed: " + response.statusCode();
+            log.warn(reason);
+            return fallbackWeather(reason);
+        }
+
+        return parseWeather(response.body(), forecastBase);
+    }
+
+    private URI weatherUri(ForecastBase forecastBase) {
+        String normalizedKey = serviceKey.contains("%")
+            ? serviceKey
+            : URLEncoder.encode(serviceKey, StandardCharsets.UTF_8);
+
+        return URI.create(
             "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
-                + "?serviceKey=" + serviceKey
+                + "?serviceKey=" + normalizedKey
                 + "&pageNo=1"
                 + "&numOfRows=80"
                 + "&dataType=JSON"
@@ -60,26 +83,22 @@ public class WeatherController {
                 + "&nx=62"
                 + "&ny=123"
         );
-
-        HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            return fallbackWeather("KMA request failed: " + response.statusCode());
-        }
-
-        return parseWeather(response.body(), forecastBase);
     }
 
     private WeatherResponse parseWeather(String body, ForecastBase forecastBase) throws IOException {
         JsonNode root = objectMapper.readTree(body);
         JsonNode header = root.path("response").path("header");
         if (!"00".equals(header.path("resultCode").asText())) {
-            return fallbackWeather(header.path("resultMsg").asText("KMA returned an error"));
+            String reason = header.path("resultMsg").asText("KMA returned an error");
+            log.warn("KMA returned fallback response: {}", reason);
+            return fallbackWeather(reason);
         }
 
         List<JsonNode> items = root.path("response").path("body").path("items").path("item").findValues("category");
         if (items.isEmpty()) {
-            return fallbackWeather("KMA response has no forecast items");
+            String reason = "KMA response has no forecast items";
+            log.warn(reason);
+            return fallbackWeather(reason);
         }
 
         Map<String, JsonNode> selected = new HashMap<>();
