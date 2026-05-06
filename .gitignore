@@ -1,0 +1,20 @@
+.idea/
+.vscode/
+*.iml
+
+# Java / Maven
+.m2/
+backend/target/
+*.class
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
