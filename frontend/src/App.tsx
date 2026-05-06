@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties, type PointerEvent } from 'react'
+import L from 'leaflet'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 
 type HelloResponse = {
   message: string
@@ -11,6 +12,8 @@ type WeatherResponse = {
   address: string
   latitude: number
   longitude: number
+  nx: number
+  ny: number
   temperature: number
   humidity: number
   condition: string
@@ -19,10 +22,27 @@ type WeatherResponse = {
   notice: string | null
 }
 
+type MapCenter = {
+  lat: number
+  lon: number
+  zoom: number
+}
+
+type StudyMapProps = {
+  center: MapCenter
+  onChange: (center: MapCenter) => void
+}
+
 type SpotlightCardProps = {
   title: string
   description: string
   accent: string
+}
+
+const PANGYO_CENTER: MapCenter = {
+  lat: 37.4119,
+  lon: 127.0988,
+  zoom: 16,
 }
 
 function SplitHeadline({ text }: { text: string }) {
@@ -35,6 +55,64 @@ function SplitHeadline({ text }: { text: string }) {
       ))}
     </h1>
   )
+}
+
+function StudyMap({ center, onChange }: StudyMapProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const markerRef = useRef<L.CircleMarker | null>(null)
+  const initialCenterRef = useRef(center)
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) {
+      return
+    }
+
+    const initialCenter = initialCenterRef.current
+    const map = L.map(containerRef.current, {
+      center: [initialCenter.lat, initialCenter.lon],
+      zoom: initialCenter.zoom,
+      zoomControl: true,
+    })
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map)
+
+    const marker = L.circleMarker([initialCenter.lat, initialCenter.lon], {
+      radius: 8,
+      color: '#172033',
+      fillColor: '#2f7d68',
+      fillOpacity: 0.95,
+      weight: 3,
+    }).addTo(map)
+
+    function emitCenter() {
+      const nextCenter = map.getCenter()
+      onChange({
+        lat: Number(nextCenter.lat.toFixed(5)),
+        lon: Number(nextCenter.lng.toFixed(5)),
+        zoom: map.getZoom(),
+      })
+    }
+
+    map.on('moveend zoomend', emitCenter)
+    mapRef.current = map
+    markerRef.current = marker
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+      markerRef.current = null
+    }
+  }, [onChange])
+
+  useEffect(() => {
+    markerRef.current?.setLatLng([center.lat, center.lon])
+  }, [center.lat, center.lon])
+
+  return <div className="leaflet-map" ref={containerRef} />
 }
 
 function SpotlightCard({ title, description, accent }: SpotlightCardProps) {
@@ -60,8 +138,10 @@ function SpotlightCard({ title, description, accent }: SpotlightCardProps) {
 function App() {
   const [data, setData] = useState<HelloResponse | null>(null)
   const [weather, setWeather] = useState<WeatherResponse | null>(null)
+  const [mapCenter, setMapCenter] = useState<MapCenter>(PANGYO_CENTER)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [weatherLoading, setWeatherLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/hello')
@@ -79,21 +159,24 @@ function App() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/weather')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Weather request failed: ${response.status}`)
-        }
-        return response.json() as Promise<WeatherResponse>
-      })
-      .then(setWeather)
-      .catch(() => {
-        setWeather(null)
-      })
-  }, [])
+    const timeoutId = window.setTimeout(() => {
+      setWeatherLoading(true)
+      fetch(`/api/weather?lat=${mapCenter.lat}&lon=${mapCenter.lon}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Weather request failed: ${response.status}`)
+          }
+          return response.json() as Promise<WeatherResponse>
+        })
+        .then(setWeather)
+        .catch(() => {
+          setWeather(null)
+        })
+        .finally(() => setWeatherLoading(false))
+    }, 350)
 
-  const mapUrl =
-    'https://www.openstreetmap.org/export/embed.html?bbox=127.0948%2C37.4089%2C127.1028%2C37.4149&layer=mapnik&marker=37.4119%2C127.0988'
+    return () => window.clearTimeout(timeoutId)
+  }, [mapCenter.lat, mapCenter.lon])
 
   return (
     <main className="app">
@@ -103,7 +186,7 @@ function App() {
           <p className="eyebrow">React Study Lab</p>
           <SplitHeadline text="Build sharp full-stack screens" />
           <p className="intro">
-            Spring Boot API와 React TypeScript 화면을 한 프로젝트에서 연습하는 작은 실험실입니다.
+            A compact dashboard playground for Spring Boot APIs, React TypeScript, live maps, and weather data.
           </p>
 
           <div className="hero-actions" aria-label="Project status">
@@ -118,11 +201,12 @@ function App() {
           </div>
         </div>
 
-        <div className="map-panel" aria-label="Pangyo Global Biz Center map">
-          <iframe title="Pangyo Global Biz Center map" src={mapUrl} loading="lazy" />
+        <div className="map-panel" aria-label="Interactive Pangyo map">
+          <StudyMap center={mapCenter} onChange={setMapCenter} />
+          <div className="map-crosshair" />
           <div className="map-label">
-            <span>Zoom 16</span>
-            <strong>판교 글로벌비즈센터</strong>
+            <span>Zoom {mapCenter.zoom}</span>
+            <strong>{weather?.place ?? 'Pangyo Global Biz Center'}</strong>
           </div>
 
           <div className="weather-card" aria-live="polite">
@@ -130,20 +214,23 @@ function App() {
               <span />
             </div>
             <div className="weather-copy">
-              <span>{weather?.dong ?? '시흥동'} 현재 날씨</span>
-              <strong>{weather ? weather.condition : '확인 중'}</strong>
-              <p>{weather?.address ?? '경기도 성남시 수정구 창업로 43'}</p>
+              <span>{weather?.dong ?? 'Map center'} weather</span>
+              <strong>{weatherLoading ? 'Loading' : weather?.condition ?? 'No data'}</strong>
+              <p>{weather?.address ?? `${mapCenter.lat.toFixed(5)}, ${mapCenter.lon.toFixed(5)}`}</p>
             </div>
             <div className="weather-stats">
               <span>
-                <strong>{weather ? `${weather.temperature}°` : '--°'}</strong>
-                온도
+                <strong>{weather && !weatherLoading ? `${weather.temperature}°` : '--°'}</strong>
+                Temp
               </span>
               <span>
-                <strong>{weather ? `${weather.humidity}%` : '--%'}</strong>
-                습도
+                <strong>{weather && !weatherLoading ? `${weather.humidity}%` : '--%'}</strong>
+                Humidity
               </span>
             </div>
+            <p className="weather-meta">
+              nx {weather?.nx ?? '--'} / ny {weather?.ny ?? '--'}
+            </p>
             {weather?.notice && <p className="weather-notice">{weather.notice}</p>}
           </div>
         </div>
@@ -152,17 +239,17 @@ function App() {
       <section className="workspace" id="workspace" aria-label="Study workspace">
         <SpotlightCard
           title="Component playground"
-          description="React Bits 스타일의 애니메이션 헤드라인과 포인터 반응형 카드를 붙여가며 화면 감각을 익힙니다."
+          description="Animated headlines and pointer-aware cards give the page a React Bits-inspired interaction layer."
           accent="#2f7d68"
         />
         <SpotlightCard
-          title="API practice"
-          description="프론트는 Vite proxy를 통해 Spring Boot의 /api 경로를 호출하고 응답 상태를 바로 확인합니다."
+          title="Map weather"
+          description="Move or zoom the map and the weather card follows the current center point through the backend API."
           accent="#3f6fb5"
         />
         <SpotlightCard
           title="Project routine"
-          description="IntelliJ 실행 구성으로 백엔드와 프론트를 나란히 켜고 기능을 조금씩 확장합니다."
+          description="Run the Spring Boot server and Vite frontend side by side in IntelliJ while expanding each feature."
           accent="#c45f4a"
         />
       </section>
