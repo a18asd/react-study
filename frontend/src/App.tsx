@@ -1,55 +1,53 @@
-import L from 'leaflet'
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import * as am5 from '@amcharts/amcharts5'
+import * as am5xy from '@amcharts/amcharts5/xy'
+import am5themesAnimated from '@amcharts/amcharts5/themes/Animated'
+import Map from 'ol/Map.js'
+import View from 'ol/View.js'
+import TileLayer from 'ol/layer/Tile.js'
+import { fromLonLat, toLonLat } from 'ol/proj.js'
+import OSM from 'ol/source/OSM.js'
+import XYZ from 'ol/source/XYZ.js'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-type HelloResponse = {
-  message: string
-  servedAt: string
-}
+type MapMode = 'standard' | 'satellite'
 
-type WeatherResponse = {
-  dong: string
-  place: string
-  address: string
-  latitude: number
-  longitude: number
-  nx: number
-  ny: number
-  temperature: number
-  humidity: number
-  condition: string
-  icon: 'sun' | 'cloud-sun' | 'cloud' | 'rain' | 'snow'
-  source: string
-  notice: string | null
-}
-
-type MapCenter = {
+type ViewState = {
   lat: number
   lon: number
   zoom: number
 }
 
-type StudyMapProps = {
-  center: MapCenter
-  onChange: (center: MapCenter) => void
+type MetricDatum = {
+  label: string
+  value: number
+  trend: number
 }
 
-type SpotlightCardProps = {
-  title: string
-  description: string
-  accent: string
-}
-
-const PANGYO_CENTER: MapCenter = {
+const PANGYO_VIEW: ViewState = {
   lat: 37.4119,
   lon: 127.0988,
   zoom: 16,
 }
 
-function SplitHeadline({ text }: { text: string }) {
+function createMetricData(view: ViewState): MetricDatum[] {
+  const seed = Math.abs(Math.sin(view.lat * 2.7) + Math.cos(view.lon * 1.8) + view.zoom / 12)
+  const base = Math.round(seed * 28 + 42)
+
+  return [
+    { label: 'Traffic', value: base + Math.round(view.zoom * 1.5), trend: 8 + Math.round(seed * 6) },
+    { label: 'Weather', value: base - 7 + Math.round((view.lat % 1) * 18), trend: 4 + Math.round(seed * 4) },
+    { label: 'Demand', value: base + 13 + Math.round((view.lon % 1) * 24), trend: 10 + Math.round(seed * 5) },
+    { label: 'Signal', value: base - 3 + Math.round(view.zoom * 2.2), trend: 6 + Math.round(seed * 7) },
+  ]
+}
+
+function AnimatedHeadline() {
+  const words = ['Operations', 'Map', 'Intelligence']
+
   return (
-    <h1 className="split-headline" aria-label={text}>
-      {text.split(' ').map((word, index) => (
-        <span className="headline-word" style={{ animationDelay: `${index * 90}ms` }} key={`${word}-${index}`}>
+    <h1 className="dashboard-title" aria-label="Operations Map Intelligence">
+      {words.map((word, index) => (
+        <span style={{ animationDelay: `${index * 120}ms` }} key={word}>
           {word}
         </span>
       ))}
@@ -57,201 +55,292 @@ function SplitHeadline({ text }: { text: string }) {
   )
 }
 
-function StudyMap({ center, onChange }: StudyMapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const markerRef = useRef<L.CircleMarker | null>(null)
-  const initialCenterRef = useRef(center)
+function OpenLayersMap({
+  mode,
+  onViewChange,
+}: {
+  mode: MapMode
+  onViewChange: (view: ViewState) => void
+}) {
+  const mapElementRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<Map | null>(null)
+  const standardLayerRef = useRef<TileLayer<OSM> | null>(null)
+  const satelliteLayerRef = useRef<TileLayer<XYZ> | null>(null)
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) {
+    if (!mapElementRef.current || mapRef.current) {
       return
     }
 
-    const initialCenter = initialCenterRef.current
-    const map = L.map(containerRef.current, {
-      center: [initialCenter.lat, initialCenter.lon],
-      zoom: initialCenter.zoom,
-      zoomControl: true,
+    const standardLayer = new TileLayer({
+      source: new OSM(),
+      visible: true,
+    })
+    const satelliteLayer = new TileLayer({
+      source: new XYZ({
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attributions: 'Tiles &copy; Esri',
+        maxZoom: 19,
+      }),
+      visible: false,
     })
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const view = new View({
+      center: fromLonLat([PANGYO_VIEW.lon, PANGYO_VIEW.lat]),
+      zoom: PANGYO_VIEW.zoom,
+      minZoom: 6,
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map)
+    })
 
-    const marker = L.circleMarker([initialCenter.lat, initialCenter.lon], {
-      radius: 8,
-      color: '#172033',
-      fillColor: '#2f7d68',
-      fillOpacity: 0.95,
-      weight: 3,
-    }).addTo(map)
+    const map = new Map({
+      target: mapElementRef.current,
+      layers: [standardLayer, satelliteLayer],
+      view,
+      controls: [],
+    })
 
-    function emitCenter() {
-      const nextCenter = map.getCenter()
-      onChange({
-        lat: Number(nextCenter.lat.toFixed(5)),
-        lon: Number(nextCenter.lng.toFixed(5)),
-        zoom: map.getZoom(),
+    function emitViewState() {
+      const [lon, lat] = toLonLat(view.getCenter() ?? fromLonLat([PANGYO_VIEW.lon, PANGYO_VIEW.lat]))
+      onViewChange({
+        lat: Number(lat.toFixed(5)),
+        lon: Number(lon.toFixed(5)),
+        zoom: Number((view.getZoom() ?? PANGYO_VIEW.zoom).toFixed(1)),
       })
     }
 
-    map.on('moveend zoomend', emitCenter)
+    map.on('moveend', emitViewState)
     mapRef.current = map
-    markerRef.current = marker
+    standardLayerRef.current = standardLayer
+    satelliteLayerRef.current = satelliteLayer
 
     return () => {
-      map.remove()
+      map.setTarget(undefined)
       mapRef.current = null
-      markerRef.current = null
+      standardLayerRef.current = null
+      satelliteLayerRef.current = null
     }
-  }, [onChange])
+  }, [onViewChange])
 
   useEffect(() => {
-    markerRef.current?.setLatLng([center.lat, center.lon])
-  }, [center.lat, center.lon])
+    standardLayerRef.current?.setVisible(mode === 'standard')
+    satelliteLayerRef.current?.setVisible(mode === 'satellite')
+  }, [mode])
 
-  return <div className="leaflet-map" ref={containerRef} />
+  return <div className="ol-map" ref={mapElementRef} />
 }
 
-function SpotlightCard({ title, description, accent }: SpotlightCardProps) {
-  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect()
-    event.currentTarget.style.setProperty('--x', `${event.clientX - bounds.left}px`)
-    event.currentTarget.style.setProperty('--y', `${event.clientY - bounds.top}px`)
-  }
+function MetricChart({ data }: { data: MetricDatum[] }) {
+  const chartRef = useRef<HTMLDivElement | null>(null)
+  const seriesRef = useRef<am5xy.ColumnSeries | null>(null)
+  const trendSeriesRef = useRef<am5xy.LineSeries | null>(null)
 
-  return (
-    <article
-      className="spotlight-card"
-      style={{ '--accent': accent } as CSSProperties}
-      onPointerMove={handlePointerMove}
-    >
-      <span className="card-mark" />
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </article>
-  )
-}
+  useLayoutEffect(() => {
+    if (!chartRef.current) {
+      return
+    }
 
-function App() {
-  const [data, setData] = useState<HelloResponse | null>(null)
-  const [weather, setWeather] = useState<WeatherResponse | null>(null)
-  const [mapCenter, setMapCenter] = useState<MapCenter>(PANGYO_CENTER)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [weatherLoading, setWeatherLoading] = useState(true)
+    const root = am5.Root.new(chartRef.current)
+    root.setThemes([am5themesAnimated.new(root)])
+    root.interfaceColors.set('grid', am5.color(0x263247))
 
-  useEffect(() => {
-    fetch('/api/hello')
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`)
-        }
-        return response.json() as Promise<HelloResponse>
-      })
-      .then(setData)
-      .catch((caught: unknown) => {
-        setError(caught instanceof Error ? caught.message : 'Unknown error')
-      })
-      .finally(() => setLoading(false))
+    const chart = root.container.children.push(
+      am5xy.XYChart.new(root, {
+        panX: false,
+        panY: false,
+        wheelX: 'none',
+        wheelY: 'none',
+        paddingTop: 8,
+        paddingRight: 4,
+        paddingBottom: 0,
+        paddingLeft: 0,
+      }),
+    )
+
+    const xAxis = chart.xAxes.push(
+      am5xy.CategoryAxis.new(root, {
+        categoryField: 'label',
+        renderer: am5xy.AxisRendererX.new(root, {
+          minGridDistance: 24,
+        }),
+      }),
+    )
+
+    const yAxis = chart.yAxes.push(
+      am5xy.ValueAxis.new(root, {
+        min: 0,
+        max: 110,
+        strictMinMax: true,
+        renderer: am5xy.AxisRendererY.new(root, {}),
+      }),
+    )
+
+    xAxis.get('renderer').labels.template.setAll({
+      fill: am5.color(0x8b9ab3),
+      fontSize: 12,
+    })
+    yAxis.get('renderer').labels.template.setAll({
+      fill: am5.color(0x65748c),
+      fontSize: 11,
+    })
+    xAxis.get('renderer').grid.template.set('visible', false)
+    yAxis.get('renderer').grid.template.setAll({
+      stroke: am5.color(0x263247),
+      strokeOpacity: 0.65,
+    })
+
+    const series = chart.series.push(
+      am5xy.ColumnSeries.new(root, {
+        name: 'Signal',
+        xAxis,
+        yAxis,
+        valueYField: 'value',
+        categoryXField: 'label',
+      }),
+    )
+
+    series.columns.template.setAll({
+      cornerRadiusTL: 8,
+      cornerRadiusTR: 8,
+      fill: am5.color(0x16d6a2),
+      strokeOpacity: 0,
+      width: am5.percent(54),
+    })
+
+    const trendSeries = chart.series.push(
+      am5xy.LineSeries.new(root, {
+        name: 'Trend',
+        xAxis,
+        yAxis,
+        valueYField: 'trend',
+        categoryXField: 'label',
+        stroke: am5.color(0x7aa7ff),
+      }),
+    )
+
+    trendSeries.strokes.template.setAll({
+      strokeWidth: 3,
+    })
+    trendSeries.bullets.push(() =>
+      am5.Bullet.new(root, {
+        sprite: am5.Circle.new(root, {
+          radius: 4,
+          fill: am5.color(0x7aa7ff),
+          stroke: am5.color(0x07101f),
+          strokeWidth: 2,
+        }),
+      }),
+    )
+
+    xAxis.data.setAll(data)
+    series.data.setAll(data)
+    trendSeries.data.setAll(data)
+    series.appear(800)
+    trendSeries.appear(900)
+    chart.appear(800, 120)
+
+    seriesRef.current = series
+    trendSeriesRef.current = trendSeries
+
+    return () => {
+      root.dispose()
+      seriesRef.current = null
+      trendSeriesRef.current = null
+    }
   }, [])
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setWeatherLoading(true)
-      fetch(`/api/weather?lat=${mapCenter.lat}&lon=${mapCenter.lon}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Weather request failed: ${response.status}`)
-          }
-          return response.json() as Promise<WeatherResponse>
-        })
-        .then(setWeather)
-        .catch(() => {
-          setWeather(null)
-        })
-        .finally(() => setWeatherLoading(false))
-    }, 350)
+    seriesRef.current?.data.setAll(data)
+    trendSeriesRef.current?.data.setAll(data)
+  }, [data])
 
-    return () => window.clearTimeout(timeoutId)
-  }, [mapCenter.lat, mapCenter.lon])
+  return <div className="chart-canvas" ref={chartRef} />
+}
+
+function App() {
+  const [viewState, setViewState] = useState<ViewState>(PANGYO_VIEW)
+  const [mapMode, setMapMode] = useState<MapMode>('standard')
+  const handleViewChange = useCallback((nextViewState: ViewState) => {
+    setViewState(nextViewState)
+  }, [])
+  const chartData = useMemo(() => createMetricData(viewState), [viewState])
+  const primaryMetric = chartData.reduce((total, item) => total + item.value, 0)
 
   return (
-    <main className="app">
-      <div className="ambient-grid" />
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">React Study Lab</p>
-          <SplitHeadline text="Build sharp full-stack screens" />
-          <p className="intro">
-            A compact dashboard playground for Spring Boot APIs, React TypeScript, live maps, and weather data.
-          </p>
-
-          <div className="hero-actions" aria-label="Project status">
-            <a className="primary-link" href="#workspace">
-              Explore workspace
-            </a>
-            <div className="status-pill" aria-live="polite">
-              {loading && <span>Checking backend...</span>}
-              {error && <span className="error">Backend offline</span>}
-              {data && <span>{data.message}</span>}
-            </div>
-          </div>
+    <main className="dashboard">
+      <div className="mesh-background" />
+      <section className="dashboard-header">
+        <div>
+          <p className="kicker">React Study Command Center</p>
+          <AnimatedHeadline />
         </div>
-
-        <div className="map-panel" aria-label="Interactive Pangyo map">
-          <StudyMap center={mapCenter} onChange={setMapCenter} />
-          <div className="map-crosshair" />
-          <div className="map-label">
-            <span>Zoom {mapCenter.zoom}</span>
-            <strong>{weather?.place ?? 'Pangyo Global Biz Center'}</strong>
-          </div>
-
-          <div className="weather-card" aria-live="polite">
-            <div className="weather-icon" data-icon={weather?.icon ?? 'sun'}>
-              <span />
-            </div>
-            <div className="weather-copy">
-              <span>{weather?.dong ?? 'Map center'} weather</span>
-              <strong>{weatherLoading ? 'Loading' : weather?.condition ?? 'No data'}</strong>
-              <p>{weather?.address ?? `${mapCenter.lat.toFixed(5)}, ${mapCenter.lon.toFixed(5)}`}</p>
-            </div>
-            <div className="weather-stats">
-              <span>
-                <strong>{weather && !weatherLoading ? `${weather.temperature} deg` : '-- deg'}</strong>
-                Temp
-              </span>
-              <span>
-                <strong>{weather && !weatherLoading ? `${weather.humidity}%` : '--%'}</strong>
-                Humidity
-              </span>
-            </div>
-            <p className="weather-meta">
-              nx {weather?.nx ?? '--'} / ny {weather?.ny ?? '--'}
-            </p>
-            {weather?.notice && <p className="weather-notice">{weather.notice}</p>}
-          </div>
+        <div className="header-metrics">
+          <span>Center {viewState.lat.toFixed(3)}, {viewState.lon.toFixed(3)}</span>
+          <strong>{primaryMetric}</strong>
         </div>
       </section>
 
-      <section className="workspace" id="workspace" aria-label="Study workspace">
-        <SpotlightCard
-          title="Component playground"
-          description="Animated headlines and pointer-aware cards give the page a React Bits-inspired interaction layer."
-          accent="#2f7d68"
-        />
-        <SpotlightCard
-          title="Map weather"
-          description="Move or zoom the map and the weather card follows the current center point through the backend API."
-          accent="#3f6fb5"
-        />
-        <SpotlightCard
-          title="Project routine"
-          description="Run the Spring Boot server and Vite frontend side by side in IntelliJ while expanding each feature."
-          accent="#c45f4a"
-        />
+      <section className="dashboard-grid">
+        <article className="panel chart-panel">
+          <div className="panel-heading">
+            <div>
+              <p>Live telemetry</p>
+              <h2>Viewport driven amCharts</h2>
+            </div>
+            <span className="pulse-dot">Map synced</span>
+          </div>
+          <MetricChart data={chartData} />
+          <div className="chart-readout">
+            {chartData.map((item) => (
+              <span key={item.label}>
+                {item.label}
+                <strong>{item.value}</strong>
+              </span>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel map-dashboard-panel">
+          <div className="map-toolbar">
+            <div>
+              <p>OpenLayers map</p>
+              <h2>Pangyo Global Biz Center</h2>
+            </div>
+            <div className="segmented-control" aria-label="Map layer">
+              <button
+                className={mapMode === 'standard' ? 'active' : ''}
+                type="button"
+                onClick={() => setMapMode('standard')}
+              >
+                Normal
+              </button>
+              <button
+                className={mapMode === 'satellite' ? 'active' : ''}
+                type="button"
+                onClick={() => setMapMode('satellite')}
+              >
+                Satellite
+              </button>
+            </div>
+          </div>
+          <div className="map-frame">
+            <OpenLayersMap mode={mapMode} onViewChange={handleViewChange} />
+            <div className="map-reticle" />
+            <div className="map-status-card">
+              <span>Zoom {viewState.zoom}</span>
+              <strong>{mapMode === 'satellite' ? 'Satellite' : 'Normal'} layer</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="project-story panel">
+        <div className="story-line" />
+        <p className="kicker">Project brief</p>
+        <h2>Spring Boot와 React TypeScript로 만드는 실시간 지도형 대시보드</h2>
+        <p>
+          지도 이동 이벤트를 데이터 흐름의 중심으로 두고, 좌측 amCharts 패널이 즉시 반응하는 구조입니다.
+          앞으로 날씨, 교통, 업무 지표 같은 API를 같은 패턴으로 붙이면 운영형 대시보드로 확장할 수 있습니다.
+        </p>
       </section>
     </main>
   )
