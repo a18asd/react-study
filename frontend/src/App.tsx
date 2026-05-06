@@ -84,14 +84,12 @@ function OpenLayersMap({
       }),
       visible: false,
     })
-
     const view = new View({
       center: fromLonLat([PANGYO_VIEW.lon, PANGYO_VIEW.lat]),
       zoom: PANGYO_VIEW.zoom,
       minZoom: 6,
       maxZoom: 19,
     })
-
     const map = new Map({
       target: mapElementRef.current,
       layers: [standardLayer, satelliteLayer],
@@ -155,7 +153,6 @@ function MetricChart({ data }: { data: MetricDatum[] }) {
         paddingLeft: 0,
       }),
     )
-
     const xAxis = chart.xAxes.push(
       am5xy.CategoryAxis.new(root, {
         categoryField: 'label',
@@ -164,7 +161,6 @@ function MetricChart({ data }: { data: MetricDatum[] }) {
         }),
       }),
     )
-
     const yAxis = chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
         min: 0,
@@ -197,7 +193,6 @@ function MetricChart({ data }: { data: MetricDatum[] }) {
         categoryXField: 'label',
       }),
     )
-
     series.columns.template.setAll({
       cornerRadiusTL: 8,
       cornerRadiusTR: 8,
@@ -216,20 +211,21 @@ function MetricChart({ data }: { data: MetricDatum[] }) {
         stroke: am5.color(0x7aa7ff),
       }),
     )
-
     trendSeries.strokes.template.setAll({
       strokeWidth: 3,
     })
-    trendSeries.bullets.push(() =>
-      am5.Bullet.new(root, {
-        sprite: am5.Circle.new(root, {
-          radius: 4,
-          fill: am5.color(0x7aa7ff),
-          stroke: am5.color(0x07101f),
-          strokeWidth: 2,
-        }),
-      }),
-    )
+    trendSeries.bullets.push(() => {
+      const bulletCircle = am5.Circle.new(root, {
+        radius: 4,
+        fill: am5.color(0x7aa7ff),
+        stroke: am5.color(0x07101f),
+        strokeWidth: 2,
+      })
+
+      return am5.Bullet.new(root, {
+        sprite: bulletCircle,
+      })
+    })
 
     xAxis.data.setAll(data)
     series.data.setAll(data)
@@ -274,7 +270,9 @@ function App() {
           <AnimatedHeadline />
         </div>
         <div className="header-metrics">
-          <span>Center {viewState.lat.toFixed(3)}, {viewState.lon.toFixed(3)}</span>
+          <span>
+            Center {viewState.lat.toFixed(3)}, {viewState.lon.toFixed(3)}
+          </span>
           <strong>{primaryMetric}</strong>
         </div>
       </section>
@@ -336,10 +334,11 @@ function App() {
       <section className="project-story panel">
         <div className="story-line" />
         <p className="kicker">Project brief</p>
-        <h2>Spring Boot와 React TypeScript로 만드는 실시간 지도형 대시보드</h2>
+        <h2>Spring Boot and React TypeScript real-time map dashboard</h2>
         <p>
-          지도 이동 이벤트를 데이터 흐름의 중심으로 두고, 좌측 amCharts 패널이 즉시 반응하는 구조입니다.
-          앞으로 날씨, 교통, 업무 지표 같은 API를 같은 패턴으로 붙이면 운영형 대시보드로 확장할 수 있습니다.
+          Map movement is the center of the data flow, and the amCharts panel reacts immediately
+          to viewport changes. Weather, traffic, and operational APIs can be added later with the
+          same pattern.
         </p>
       </section>
     </main>
