@@ -7,6 +7,19 @@ Spring Boot backend and React TypeScript frontend study project.
 - `backend`: Spring Boot REST API
 - `frontend`: Vite + React + TypeScript app
 
+## IntelliJ IDEA
+
+Open the repository root folder or root `pom.xml`, not only `backend/pom.xml`.
+
+```text
+react-study
+├─ pom.xml
+├─ backend
+└─ frontend
+```
+
+The root Maven project imports `backend` as a module while keeping `frontend` visible in the project tree.
+
 ## Run Backend
 
 ```bash
