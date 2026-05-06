@@ -26,6 +26,8 @@ npm run dev
 
 The frontend runs at `http://localhost:5173` and proxies `/api` calls to the backend.
 
+In IntelliJ IDEA, select the `Frontend Dev` run configuration and click Run.
+
 ## API
 
 - `GET /api/hello`: returns a sample message from Spring Boot
