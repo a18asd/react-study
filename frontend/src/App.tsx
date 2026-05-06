@@ -5,6 +5,20 @@ type HelloResponse = {
   servedAt: string
 }
 
+type WeatherResponse = {
+  dong: string
+  place: string
+  address: string
+  latitude: number
+  longitude: number
+  temperature: number
+  humidity: number
+  condition: string
+  icon: 'sun' | 'cloud-sun' | 'cloud' | 'rain' | 'snow'
+  source: string
+  notice: string | null
+}
+
 type SpotlightCardProps = {
   title: string
   description: string
@@ -45,6 +59,7 @@ function SpotlightCard({ title, description, accent }: SpotlightCardProps) {
 
 function App() {
   const [data, setData] = useState<HelloResponse | null>(null)
+  const [weather, setWeather] = useState<WeatherResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -62,6 +77,23 @@ function App() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    fetch('/api/weather')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Weather request failed: ${response.status}`)
+        }
+        return response.json() as Promise<WeatherResponse>
+      })
+      .then(setWeather)
+      .catch(() => {
+        setWeather(null)
+      })
+  }, [])
+
+  const mapUrl =
+    'https://www.openstreetmap.org/export/embed.html?bbox=127.0948%2C37.4089%2C127.1028%2C37.4149&layer=mapnik&marker=37.4119%2C127.0988'
 
   return (
     <main className="app">
@@ -86,26 +118,33 @@ function App() {
           </div>
         </div>
 
-        <div className="preview-panel" aria-label="Application preview">
-          <div className="preview-topbar">
-            <span />
-            <span />
-            <span />
+        <div className="map-panel" aria-label="Pangyo Global Biz Center map">
+          <iframe title="Pangyo Global Biz Center map" src={mapUrl} loading="lazy" />
+          <div className="map-label">
+            <span>Zoom 16</span>
+            <strong>판교 글로벌비즈센터</strong>
           </div>
-          <div className="preview-metric">
-            <span>API heartbeat</span>
-            <strong>{data ? 'Online' : loading ? 'Loading' : 'Offline'}</strong>
-          </div>
-          <div className="preview-chart">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="preview-note">
-            <span>Last response</span>
-            <strong>{data ? new Date(data.servedAt).toLocaleTimeString() : '--:--:--'}</strong>
+
+          <div className="weather-card" aria-live="polite">
+            <div className="weather-icon" data-icon={weather?.icon ?? 'sun'}>
+              <span />
+            </div>
+            <div className="weather-copy">
+              <span>{weather?.dong ?? '시흥동'} 현재 날씨</span>
+              <strong>{weather ? weather.condition : '확인 중'}</strong>
+              <p>{weather?.address ?? '경기도 성남시 수정구 창업로 43'}</p>
+            </div>
+            <div className="weather-stats">
+              <span>
+                <strong>{weather ? `${weather.temperature}°` : '--°'}</strong>
+                온도
+              </span>
+              <span>
+                <strong>{weather ? `${weather.humidity}%` : '--%'}</strong>
+                습도
+              </span>
+            </div>
+            {weather?.notice && <p className="weather-notice">API key fallback</p>}
           </div>
         </div>
       </section>
