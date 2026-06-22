@@ -96,11 +96,13 @@ button {
 
 .header-metrics {
   display: grid;
-  min-width: 240px;
+  width: 240px;
+  height: 72px;
+  align-content: center;
   border: 1px solid rgb(122 167 255 / 20%);
   border-radius: 8px;
   background: rgb(9 17 31 / 78%);
-  padding: 16px;
+  padding: 10px 14px;
   box-shadow: 0 24px 80px rgb(0 0 0 / 32%);
 }
 
@@ -111,9 +113,9 @@ button {
 }
 
 .header-metrics strong {
-  margin-top: 6px;
+  margin-top: 4px;
   color: #e7eefc;
-  font-size: 2.25rem;
+  font-size: 1.7rem;
   line-height: 1;
 }
 
