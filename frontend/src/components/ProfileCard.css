@@ -1,0 +1,180 @@
+.profile-card {
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgb(122 167 255 / 22%);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgb(16 30 52 / 94%), rgb(7 14 27 / 96%)),
+    #07101f;
+  color: #e7eefc;
+  cursor: pointer;
+  padding: 0;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    0 20px 60px rgb(0 0 0 / 28%);
+  transform: perspective(720px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+  transform-style: preserve-3d;
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.profile-card:hover {
+  border-color: rgb(22 214 162 / 52%);
+}
+
+.profile-card-glow,
+.profile-card-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.profile-card-glow {
+  background: radial-gradient(
+    circle at var(--pointer-x) var(--pointer-y),
+    rgb(22 214 162 / 30%),
+    transparent 34%
+  );
+}
+
+.profile-card-glare {
+  background: linear-gradient(
+    118deg,
+    transparent 25%,
+    rgb(255 255 255 / 18%) 46%,
+    transparent 62%
+  );
+  opacity: 0.42;
+  transform: translateX(calc((var(--pointer-x) - 50%) / 3));
+}
+
+.profile-card-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 11px;
+  padding: 10px 12px;
+  transform: translateZ(24px);
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.profile-avatar {
+  display: block;
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.profile-status-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid #07101f;
+  border-radius: 50%;
+  background: #16d6a2;
+  box-shadow: 0 0 12px rgb(22 214 162 / 64%);
+}
+
+.profile-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  text-align: left;
+}
+
+.profile-copy strong {
+  overflow: hidden;
+  color: #e7eefc;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-copy span,
+.profile-copy small {
+  overflow: hidden;
+  color: #8b9ab3;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-arrow {
+  margin-left: auto;
+  color: #16d6a2;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.profile-card--compact {
+  width: 210px;
+  height: 72px;
+}
+
+.profile-card--full {
+  width: min(100%, 360px);
+  height: 460px;
+}
+
+.profile-card--full .profile-card-content {
+  align-items: end;
+  background: linear-gradient(180deg, transparent 42%, rgb(4 9 18 / 90%) 100%);
+  padding: 24px;
+}
+
+.profile-card--full .profile-avatar-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.profile-card--full .profile-avatar {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.profile-card--full .profile-status-dot {
+  display: none;
+}
+
+.profile-card--full .profile-copy {
+  position: relative;
+  z-index: 2;
+  gap: 6px;
+}
+
+.profile-card--full .profile-copy strong {
+  font-size: 1.7rem;
+}
+
+.profile-card--full .profile-copy span {
+  color: #c8d5ea;
+  font-size: 0.9rem;
+}
+
+.profile-card--full .profile-copy small {
+  color: #16d6a2;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+  .profile-card--compact {
+    width: 100%;
+  }
+}

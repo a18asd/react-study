@@ -76,8 +76,14 @@ button {
   flex-wrap: wrap;
   gap: 0.14em 0.28em;
   margin: 0;
-  font-size: clamp(2.8rem, 6vw, 6.6rem);
+  font-size: clamp(2rem, 4vw, 4.2rem);
   line-height: 0.88;
+}
+
+.header-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
 }
 
 .dashboard-title span {
@@ -401,6 +407,77 @@ button {
   line-height: 1.75;
 }
 
+.profile-page {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  align-content: center;
+  padding: 32px clamp(18px, 5vw, 72px);
+}
+
+.back-button {
+  position: absolute;
+  top: 26px;
+  left: clamp(18px, 5vw, 72px);
+  border: 1px solid rgb(122 167 255 / 24%);
+  border-radius: 8px;
+  background: rgb(7 16 31 / 76%);
+  color: #c8d5ea;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+.profile-page-layout {
+  display: grid;
+  width: min(100%, 980px);
+  align-items: center;
+  gap: clamp(28px, 6vw, 72px);
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  margin: 48px auto 0;
+}
+
+.profile-page-copy {
+  padding: clamp(26px, 5vw, 52px);
+}
+
+.profile-page-copy h1 {
+  margin: 0;
+  color: #e7eefc;
+  font-size: clamp(2.2rem, 5vw, 4.6rem);
+  line-height: 0.96;
+}
+
+.profile-page-copy > p:last-of-type {
+  margin: 22px 0 0;
+  color: #9fb0ca;
+  line-height: 1.75;
+}
+
+.profile-page-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 30px;
+}
+
+.profile-page-stats span {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 4%);
+  color: #8b9ab3;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 12px;
+}
+
+.profile-page-stats strong {
+  color: #16d6a2;
+  font-size: 1.2rem;
+}
+
 @keyframes title-rise {
   to {
     opacity: 1;
@@ -447,6 +524,14 @@ button {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions > * {
+    flex: 1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -455,7 +540,7 @@ button {
   }
 
   .dashboard-title {
-    font-size: 2.8rem;
+    font-size: 2.35rem;
   }
 
   .dashboard-grid {
@@ -477,5 +562,21 @@ button {
 
   .map-frame {
     height: 360px;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+
+  .profile-page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card--full {
+    margin: 0 auto;
+  }
+
+  .profile-page-stats {
+    grid-template-columns: 1fr;
   }
 }

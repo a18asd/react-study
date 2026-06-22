@@ -8,7 +8,9 @@ import { fromLonLat, toLonLat } from 'ol/proj.js'
 import OSM from 'ol/source/OSM.js'
 import XYZ from 'ol/source/XYZ.js'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import shinchanAvatar from './assets/shinchan-dashboard.png'
 import CurvedLoop from './components/CurvedLoop'
+import ProfileCard from './components/ProfileCard'
 
 type MapMode = 'standard' | 'satellite'
 
@@ -253,7 +255,7 @@ function MetricChart({ data }: { data: MetricDatum[] }) {
   return <div className="chart-canvas" ref={chartRef} />
 }
 
-function App() {
+function DashboardPage({ onOpenProfile }: { onOpenProfile: () => void }) {
   const [viewState, setViewState] = useState<ViewState>(PANGYO_VIEW)
   const [mapMode, setMapMode] = useState<MapMode>('standard')
   const handleViewChange = useCallback((nextViewState: ViewState) => {
@@ -270,11 +272,21 @@ function App() {
           <p className="kicker">React Study Command Center</p>
           <AnimatedHeadline />
         </div>
-        <div className="header-metrics">
-          <span>
-            Center {viewState.lat.toFixed(3)}, {viewState.lon.toFixed(3)}
-          </span>
-          <strong>{primaryMetric}</strong>
+        <div className="header-actions">
+          <ProfileCard
+            avatarUrl={shinchanAvatar}
+            name="Shin-chan"
+            title="Dashboard navigator"
+            handle="shinchan"
+            compact
+            onActivate={onOpenProfile}
+          />
+          <div className="header-metrics">
+            <span>
+              Center {viewState.lat.toFixed(3)}, {viewState.lon.toFixed(3)}
+            </span>
+            <strong>{primaryMetric}</strong>
+          </div>
         </div>
       </section>
 
@@ -354,6 +366,57 @@ function App() {
       </section>
     </main>
   )
+}
+
+function ProfilePage({ onBack }: { onBack: () => void }) {
+  return (
+    <main className="profile-page">
+      <div className="mesh-background" />
+      <button type="button" className="back-button" onClick={onBack}>
+        &lt; Back to dashboard
+      </button>
+      <section className="profile-page-layout">
+        <ProfileCard
+          avatarUrl={shinchanAvatar}
+          name="Shin-chan"
+          title="Operations dashboard navigator"
+          handle="shinchan"
+          status="Ready for action"
+          onActivate={onBack}
+        />
+        <div className="profile-page-copy panel">
+          <p className="kicker">Operator profile</p>
+          <h1>Welcome to Shin-chan's control room.</h1>
+          <p>
+            This page is a separate dashboard destination opened from the React Bits inspired
+            Profile Card. It can later hold saved map views, alerts, preferences, and operator
+            activity.
+          </p>
+          <div className="profile-page-stats">
+            <span><strong>12</strong>Saved views</span>
+            <span><strong>04</strong>Live alerts</span>
+            <span><strong>99%</strong>Playful mode</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function App() {
+  const [page, setPage] = useState(() => (window.location.hash === '#profile' ? 'profile' : 'dashboard'))
+
+  useEffect(() => {
+    const syncPage = () => setPage(window.location.hash === '#profile' ? 'profile' : 'dashboard')
+    window.addEventListener('hashchange', syncPage)
+    return () => window.removeEventListener('hashchange', syncPage)
+  }, [])
+
+  if (page === 'profile') {
+    return <ProfilePage onBack={() => { window.location.hash = '' }} />
+  }
+
+  return <DashboardPage onOpenProfile={() => { window.location.hash = 'profile' }} />
 }
 
 export default App
