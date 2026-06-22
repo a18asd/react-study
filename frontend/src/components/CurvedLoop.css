@@ -1,0 +1,30 @@
+.curved-loop {
+  width: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.curved-loop:active {
+  cursor: grabbing;
+}
+
+.curved-loop-svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  user-select: none;
+}
+
+.welcome-loop-text {
+  fill: #16d6a2;
+  font-size: 4.2rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .welcome-loop-text {
+    font-size: 5.4rem;
+  }
+}

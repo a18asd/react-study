@@ -8,6 +8,7 @@ import { fromLonLat, toLonLat } from 'ol/proj.js'
 import OSM from 'ol/source/OSM.js'
 import XYZ from 'ol/source/XYZ.js'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import CurvedLoop from './components/CurvedLoop'
 
 type MapMode = 'standard' | 'satellite'
 
@@ -275,6 +276,16 @@ function App() {
           </span>
           <strong>{primaryMetric}</strong>
         </div>
+      </section>
+
+      <section className="welcome-loop" aria-label="Welcome to React Study Dashboard">
+        <CurvedLoop
+          marqueeText="WELCOME TO REACT STUDY DASHBOARD  /  BUILD  MAP  EXPLORE  /  "
+          speed={1.35}
+          curveAmount={95}
+          direction="left"
+          className="welcome-loop-text"
+        />
       </section>
 
       <section className="dashboard-grid">
